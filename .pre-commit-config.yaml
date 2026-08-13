@@ -25,7 +25,10 @@ repos:
       - id: terraform_checkov
         files: \.tf$
         args:
-          - --args=--config-file ./.checkov-config.yml
+          # The hook runs once per directory with .tf files, 
+          # so a relative path resolves inside examples/*, 
+          # where there is no config, and checkov exits 2.
+          - --args=--config-file __GIT_WORKING_DIR__/.checkov-config.yml
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.34.0
     hooks:

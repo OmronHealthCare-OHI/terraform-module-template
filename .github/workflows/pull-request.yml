@@ -9,6 +9,11 @@ on:
 concurrency:
   group: ci-${{ github.head_ref }}-pr
 
+# Both jobs state what they need; this only stops the workflow from inheriting
+# the repository default. A called workflow cannot hold more than the caller
+# grants, so the validate job below repeats what validate.yml's jobs ask for.
+permissions: {}
+
 jobs:
   administration:
     runs-on: ubuntu-latest
@@ -24,5 +29,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   validate:
     uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      issues: read # for publish-unit-test-result-action to read issues
+      checks: write # for publish-unit-test-result-action to create checks
+      pull-requests: write # for publish-unit-test-result-action to comment on PRs
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

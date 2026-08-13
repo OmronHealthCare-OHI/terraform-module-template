@@ -8,6 +8,10 @@ concurrency:
   group: ci-pre-release
   cancel-in-progress: true
 
+# The job below states what it needs; this only stops the workflow from
+# inheriting the repository default.
+permissions: {}
+
 jobs:
   draft_release:
     runs-on: ubuntu-latest

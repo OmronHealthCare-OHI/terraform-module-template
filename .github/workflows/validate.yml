@@ -12,6 +12,10 @@ on:
         required: true
         description: "GitHub token to access the repository"
 
+# Every job below states what it needs; this only stops the workflow from
+# inheriting the repository default.
+permissions: {}
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -45,9 +49,12 @@ jobs:
         run: terraform -chdir=${{inputs.terraform_directory}} test -junit-xml=test-results.xml
         continue-on-error: true
 
+      # Fork PRs get a read-only token, so this cannot publish there. The gate
+      # at the end of the job is what fails on a real test failure.
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
+        continue-on-error: true
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           files: |
@@ -87,9 +94,31 @@ jobs:
         id: checkov
         uses: bridgecrewio/checkov-action@v12
         with:
+          directory: ${{inputs.terraform_directory}}
           output_format: cli
           output_file_path: console
-          config_file: .checkov-config.yml
+          config_file: ${{inputs.terraform_directory}}/.checkov-config.yml
+
+      # The BEGIN_TF_DOCS block is the module's interface, so CI checks it
+      # rather than trusting the hook. Version from .terraform-docs.yml.
+      - name: Get terraform-docs version
+        id: tfdocs-version
+        working-directory: ${{inputs.terraform_directory}}
+        run: |
+          version=$(grep '^version:' .terraform-docs.yml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup terraform-docs
+        uses: jaxxstorm/action-install-gh-release@v3.0.0
+        with:
+          repo: terraform-docs/terraform-docs
+          tag: v${{ steps.tfdocs-version.outputs.version }}
+          cache: true
+
+      - name: terraform-docs is up to date
+        id: tf-docs
+        working-directory: ${{inputs.terraform_directory}}
+        run: terraform-docs -c .terraform-docs.yml . --output-check
 
       # fmt and test use continue-on-error so results still publish; fail here.
       - name: Fail on format or test errors

@@ -11,6 +11,10 @@ on:
         required: true
         type: string
 
+# The job below states what it needs; this only stops the workflow from
+# inheriting the repository default. The caller has to grant contents: write.
+permissions: {}
+
 jobs:
   create-tags:
     runs-on: ubuntu-latest
