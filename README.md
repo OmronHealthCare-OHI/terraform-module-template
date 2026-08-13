@@ -1,9 +1,10 @@
 # terraform-module-template
 
 GitHub template for **reusable OHI Terraform modules**. It ships the repo
-scaffolding — validation and release workflows, labeling, pre-commit, Checkov,
-terraform-docs — plus a seed module that already passes CI, so a new module repo
-starts green and you replace the body rather than assemble the plumbing.
+scaffolding — validation and release workflows, PR labeling, pre-commit hooks,
+Checkov, tflint, terraform-docs — plus a seed module that already passes CI, so
+a new module repo starts green and you replace the body rather than assemble the
+plumbing.
 
 Modules created from this template are **consumed by pinned ref, never copied**:
 
@@ -16,56 +17,109 @@ module "thing" {
 }
 ```
 
+## What's in the repo
+
+```
+├── main.tf                  # seed module — replace with your resources
+├── variables.tf             # `name`, `context` (the null-label contract), `extra_tags`
+├── outputs.tf               # `id`, `tags`, `label_context`
+├── versions.tf              # required_version; required_providers commented out
+├── tests/
+│   └── defaults.tftest.hcl  # 2 plan-only runs, green out of the box
+├── examples/
+│   ├── basic/               # minimum call
+│   └── complete/            # every input, plus child-label chaining
+├── .github/
+│   ├── workflows/           # validate, pull-request, safe-change, pre-release,
+│   │                        # release, promote-release
+│   ├── labeler.yml          # branch / title / path / size → PR labels
+│   ├── release-drafter.yml  # draft notes + version resolver
+│   └── dependabot.yml       # github-actions monthly, terraform weekly
+├── .pre-commit-config.yaml  # fmt, validate, docs, tflint, checkov, test
+├── .tflint.hcl              # recommended preset + pinned-source style
+├── .checkov-config.yml      # three generic skips; add your own under a fence
+├── .terraform-docs.yml      # injects the block at the bottom of this README
+├── CONTRIBUTING.md          # versioning, release flow, commit conventions
+└── LICENSE                  # MIT
+```
+
+No `.terraform.lock.hcl` ships: the seed module declares no providers, so there
+is nothing to lock yet. Commit the one `terraform init` writes once you declare
+providers in `versions.tf`, so dependabot can bump them.
+
 ## Creating a module repo from this template
 
 1. Use the **"Use this template"** button on GitHub. Name the repo
    `terraform-{provider}-{name}` (for example `terraform-aws-lambda-service`);
    use `null` as the provider for a provider-free module.
 2. Make it **public** — `terraform init` then fetches it with no credentials.
-3. Resolve every `TODO(template)` marker. The complete list comes from
-   `grep -rn "TODO(template)" .`. At minimum:
+3. Resolve every `TODO(template)` marker. The full list is
+   `grep -rn "TODO(template)" .`; today it covers:
    - [ ] `versions.tf` — set `required_version`, declare `required_providers`,
-         and commit the `.terraform.lock.hcl` that `terraform init` writes.
+         and commit the resulting `.terraform.lock.hcl`.
    - [ ] `main.tf` — replace the seed body with the resources the module owns.
          Keep the `label` module, the `context` input and the `label_context`
          output.
-   - [ ] `variables.tf` / `outputs.tf` — the module's real inputs and outputs,
-         each with a description (terraform-docs renders them below).
+   - [ ] `variables.tf` — decide whether the module needs the stage-collision
+         validation that `terraform-aws-lambda-service` carries.
+   - [ ] `outputs.tf` — one output per address a consumer needs, each described.
    - [ ] `tests/defaults.tftest.hcl` — tests for those resources.
-   - [ ] `examples/basic` and `examples/complete` — both are validated in CI.
+   - [ ] `examples/complete/main.tf` — add a `provider` block once the module
+         declares one.
    - [ ] `.checkov-config.yml` — add the module's conscious skips under a fence,
          each with its reason.
+   - [ ] `.tflint.hcl` — enable the commented opt-in rules if you want them.
    - [ ] This `README.md` — describe the module. Keep the `BEGIN_TF_DOCS` block.
-4. Create the repo labels the workflows expect (see **Labels** below), then set
+4. Create the repo labels the workflows expect (see **Labels**), then set
    squash-only merging and delete-branch-on-merge.
 
 ## What the scaffolding gives you
 
-- **`validate.yml`** — `terraform fmt -check -recursive`, `init`, `validate`,
-  `terraform test` with JUnit results published to the PR, and Checkov. A second
-  job validates every directory under `examples/`, since each is its own root
-  module the first job never loads. Reusable: it is a `workflow_call` with a
-  `terraform_directory` input.
+Running in CI, on every PR:
+
 - **`pull-request.yml`** — runs the labeler, then calls `validate.yml`.
-- **`safe-change.yml`** — auto-approves PRs carrying the `safe-change` label.
-- **`pre-release.yml` / `release.yml` / `promote-release.yml`** — Release Drafter
-  keeps a draft up to date on every push to `main`; publishing it tags the
-  version and moves the `major` / `minor` / `latest` tags. See
-  [CONTRIBUTING.md](CONTRIBUTING.md).
-- **`dependabot.yml`** — github-actions monthly, terraform weekly.
-- **`.pre-commit-config.yaml`** — fmt, validate, terraform-docs, tflint, Checkov
-  and `terraform test` before each commit.
+- **`validate.yml`** — `terraform fmt -check -recursive`, `init`, `validate`,
+  `terraform test` with JUnit results published as a PR comment, and Checkov.
+  A second job validates every directory under `examples/`, since each is its
+  own root module the first job never loads. Reusable: a `workflow_call` with a
+  `terraform_directory` input.
+- **`safe-change.yml`** — auto-approves non-draft PRs carrying the
+  `safe-change` label.
+
+Running on release:
+
+- **`pre-release.yml` / `release.yml` / `promote-release.yml`** — Release
+  Drafter keeps a draft up to date on every push to `main`; publishing it tags
+  the version and moves the `major` / `minor` / `latest` tags. Tags carry no `v`
+  prefix. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Running locally only:
+
+- **`.pre-commit-config.yaml`** — YAML and whitespace fixers, workflow-schema
+  validation, `terraform fmt` / `validate` / `test`, terraform-docs, tflint and
+  Checkov.
+
+**tflint and terraform-docs run in the pre-commit hooks but not in CI**, so a
+contributor who skips the hooks will not be caught by a PR check. Install the
+hooks (`pre-commit install`), or add the steps to `validate.yml` if your module
+wants them enforced.
 
 ## Labels
 
 `srvaroa/labeler` runs with `continue-on-error: true`, so labels that do not
-exist fail silently and the version resolver falls back to `patch`. Create:
+exist fail silently and the version resolver falls back to `patch`.
 
-`version: major`, `version: minor`, `version: patch`, `feature`, `bug`, `fix`,
-`chore`, `maintenance`, `documentation`, `examples`, `infrastructure`,
-`build definition`, `dependencies`, `github_actions`, `terraform`,
-`safe-change`, `skip-changelog`, `internal`, `AI: instructions`, `AI: agents`,
-`PR-Size: S`, `PR-Size: M`, `PR-Size: L`.
+GitHub creates `bug` and `documentation` with a new repo. Create the rest:
+
+`version: major`, `version: minor`, `version: patch`, `feature`, `fix`,
+`chore`, `maintenance`, `examples`, `infrastructure`, `build definition`,
+`dependencies`, `github_actions`, `terraform`, `safe-change`,
+`skip-changelog`, `internal`, `AI: instructions`, `AI: agents`, `PR-Size: S`,
+`PR-Size: M`, `PR-Size: L`.
+
+`AI: instructions` and `AI: agents` are for `.github/instructions/` and
+`.github/agents/`, which this template does not ship. The rules are kept so a
+repo that adds them later labels and excludes them from release notes correctly.
 
 ## Local development
 
@@ -80,12 +134,17 @@ terraform test
 pre-commit run --all-files
 ```
 
+`terraform init` and `terraform test` reach GitHub to fetch the label module, so
+both need network access.
+
 ## The seed module
 
-A provider-free placeholder that demonstrates the shared contract: it takes a
-`context` from the caller's [terraform-null-label](https://github.com/OmronHealthCare-OHI/terraform-null-label)
+A provider-free placeholder demonstrating the contract every OHI module shares:
+it takes a `context` from the caller's
+[terraform-null-label](https://github.com/OmronHealthCare-OHI/terraform-null-label)
 instance, composes `local.id` and `local.tags` from it, and re-exports
-`label_context` for child labels. Replace it; keep the contract.
+`label_context` so consumers can chain a child label off its hierarchy. Replace
+the resources; keep the contract.
 
 <!-- BEGIN_TF_DOCS -->
 ### Requirements
