@@ -1,0 +1,23 @@
+block-list-secret-scan: []
+branch: main
+download-external-modules: true
+evaluate-variables: true
+external-modules-download-path: .external_modules
+mask: []
+quiet: true
+secrets-history-timeout: 12h
+secrets-scan-file-type: []
+skip-results-upload: true
+skip-check:
+  # Tags read better than commit hashes for module sources.
+  - CKV_TF_1
+  # We use the terraform standard for module versions.
+  - CKV_TF_2
+  # Top-level GitHub Actions permissions may be write-all for now.
+  - CKV2_GHA_1
+  # TODO(template): add your module's conscious skips below, each with the
+  # reason it is safe here. Keep them fenced under a comment like the one below
+  # so they stay separable from the three generic skips above.
+  # --- <module name>: conscious skips ---
+
+summary-position: top
