@@ -64,6 +64,25 @@ jobs:
           path: ${{inputs.terraform_directory}}/test-results.xml
           retention-days: 30
 
+      # After the publish steps, so a lint failure still leaves test results on
+      # the PR.
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+
+      - name: TFLint
+        id: tflint
+        working-directory: ${{inputs.terraform_directory}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} # rate limit on plugin download
+        run: |
+          # no-op until a module adds an external ruleset
+          tflint --init
+          # --recursive covers examples/, and reruns tflint from each directory,
+          # so the config needs an absolute path.
+          tflint --recursive --config="$(pwd)/.tflint.hcl" --format compact
+
       - name: Checkov validation
         id: checkov
         uses: bridgecrewio/checkov-action@v12
