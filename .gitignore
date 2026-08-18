@@ -6,6 +6,8 @@
 
 # Terraform working files
 **/.terraform/
+# Where checkov's download-external-modules puts module sources
+.external_modules/
 *.tfstate
 *.tfstate.*
 *.tfstate.backup
@@ -16,6 +18,15 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Likeliest route for a secret into a commit. A module needs none;
+# add an exception if an example ever does.
+*.tfvars
+*.tfvars.json
+
+# CLI configuration, which can hold credentials
+.terraformrc
+terraform.rc
 
 # Commit the root .terraform.lock.hcl once the module declares providers, so
 # dependabot can bump them. Examples are validate-only and not covered by

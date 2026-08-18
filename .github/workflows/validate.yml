@@ -111,7 +111,7 @@ jobs:
         with:
           repo: terraform-docs/terraform-docs
           tag: v${{ env.TERRAFORM_DOCS_VERSION }}
-          cache: true
+          cache: enable # the action compares this to "enable", not to a bool
 
       - name: terraform-docs is up to date
         id: tf-docs
