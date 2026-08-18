@@ -53,6 +53,8 @@ type with `!` or a `BREAKING CHANGE:` footer (major).
 ## Checks on every PR
 
 `pull-request.yml` runs the labeler and `validate.yml`, which runs
-`terraform fmt`, `init`, `validate`, `terraform test`, and Checkov (config in
-`.checkov-config.yml`). A second job validates every directory under
-`examples/`. Keep the code formatted with `terraform fmt` and the tests green.
+`terraform fmt`, `init`, `validate`, `terraform test`, tflint, Checkov (config in
+`.checkov-config.yml`) and a terraform-docs freshness check. A second job
+validates every directory under `examples/`. Keep the code formatted with
+`terraform fmt`, the `BEGIN_TF_DOCS` block regenerated, and the tests green —
+`pre-commit install` does the first two for you.

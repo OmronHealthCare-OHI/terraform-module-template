@@ -8,6 +8,10 @@ on:
       - edited
       - ready_for_review
 
+# The job below states what it needs; this only stops the workflow from
+# inheriting the repository default.
+permissions: {}
+
 jobs:
   auto_approve:
     if: github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'safe-change')

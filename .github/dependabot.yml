@@ -8,7 +8,11 @@ updates:
     schedule:
       interval: "monthly"
   - package-ecosystem: "terraform"
-    directory: "/"
+    # The examples pin the same module sources as the root, so they go stale
+    # unless they are watched too.
+    directories:
+      - "/"
+      - "/examples/*"
     labels:
       - dependencies
       - terraform
