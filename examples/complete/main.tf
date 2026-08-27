@@ -42,7 +42,7 @@ module "example" {
 # Chaining: a child label inherits the module's hierarchy and sets its own leaf
 # name, so sibling resources stay under one project/application.
 module "child_label" {
-  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.1"
+  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.2"
 
   context = module.example.label_context
   name    = "child"
