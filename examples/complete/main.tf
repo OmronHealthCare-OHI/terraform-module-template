@@ -5,7 +5,7 @@ terraform {
 # The caller owns the label: it states where it deploys and where it sits in the
 # ohi:* hierarchy, and hands the resolved context to every module it calls.
 module "label" {
-  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.2"
+  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=1.0"
 
   country    = "us"
   aws_region = "us-west-2"
