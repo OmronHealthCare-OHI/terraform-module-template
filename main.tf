@@ -19,7 +19,7 @@
 # worked example.
 
 module "label" {
-  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.2"
+  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=1.0"
 
   context = var.context
   name    = var.name
