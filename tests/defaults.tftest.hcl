@@ -12,23 +12,30 @@ run "composes_the_label_id" {
   variables {
     name = "example"
     context = {
-      country     = "us"
+      namespace   = "vlt"
+      region      = "us"
+      stage       = "dev"
       aws_region  = "us-west-2"
-      non_prd     = true
-      project     = "vlt"
       application = "platform"
-      attributes  = ["test"]
     }
   }
 
   assert {
-    condition     = output.id == "usnp-usw2-vlt-platform-example-test"
-    error_message = "id should be {prefix}-{project}-{application}-{name}-{attributes}, got ${output.id}"
+    condition     = output.id == "vlt-us-dev-platform-example"
+    error_message = "id should be {namespace}-{region}-{stage}-{application}-{name}, got ${output.id}"
   }
 
   assert {
-    condition     = output.tags["ohi:project"] == "vlt"
+    condition     = output.tags["ohi:application"] == "platform"
     error_message = "the ohi:* tags should come from the label context"
+  }
+
+  # namespace and region are the two fields 1.0.0 added. Terraform drops object
+  # attributes an input type does not declare instead of erroring, so asserting
+  # them here is what catches `variable "context"` drifting behind the label.
+  assert {
+    condition     = output.tags["Namespace"] == "vlt" && output.tags["Environment"] == "us"
+    error_message = "namespace and region must survive the context object; check variable \"context\" against terraform-null-label"
   }
 
   assert {
@@ -43,12 +50,11 @@ run "merges_extra_tags" {
   variables {
     name = "example"
     context = {
-      country     = "us"
+      namespace   = "vlt"
+      region      = "us"
+      stage       = "dev"
       aws_region  = "us-west-2"
-      non_prd     = true
-      project     = "vlt"
       application = "platform"
-      attributes  = ["test"]
     }
     extra_tags = {
       managed-by = "terraform"

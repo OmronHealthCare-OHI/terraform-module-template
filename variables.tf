@@ -10,18 +10,19 @@ variable "name" {
 
 # Naming and tags come from the shared label module. Its context object is
 # reproduced here verbatim so callers can pass `context = module.label.context`
-# and the module inherits country/stage/region and the ohi:* hierarchy. Keep
+# and the module inherits namespace/region/stage and the ohi:* hierarchy. Keep
 # this block in step with terraform-null-label: it is the contract, not a
-# convenience.
+# convenience. Terraform drops object attributes the target type does not
+# declare rather than erroring, so a field missing here is lost in silence, with
+# a green plan and the wrong names.
 variable "context" {
-  description = "Label context from the caller's terraform-null-label instance. Supplies the <country><stage>-<region> prefix, the ohi:* tag hierarchy and any attributes."
+  description = "Label context from the caller's terraform-null-label instance. Supplies the <namespace>-<region>-<stage> id segments, the ohi:* tag hierarchy and any attributes."
   type = object({
     enabled              = optional(bool, true)
-    country              = optional(string, null)
+    namespace            = optional(string, null)
+    region               = optional(string, null)
     stage                = optional(string, null)
     aws_region           = optional(string, null)
-    deployment_region    = optional(string, null)
-    project              = optional(string, null)
     application          = optional(string, null)
     module               = optional(string, null)
     stack_suffix         = optional(string, null)
@@ -29,9 +30,7 @@ variable "context" {
     owner                = optional(string, null)
     name                 = optional(string, null)
     attributes           = optional(list(string), [])
-    non_prd              = optional(bool, false)
     delimiter            = optional(string, "-")
-    prefix_enabled       = optional(bool, true)
     tag_prefix           = optional(string, "ohi")
     tag_delimiter        = optional(string, ":")
     id_length_limit      = optional(number, null)
@@ -45,11 +44,11 @@ variable "context" {
   nullable = false
 
   # TODO(template): if two deployments of this module can share one AWS account,
-  # the names must differ. The prefix is the only place a stage reaches a name,
-  # and two settings erase it there: non_prd = true collapses every non-prod
-  # stage into <country>np, and leaving stage unset does the same for the rest.
-  # terraform-aws-lambda-service adds a validation here rejecting such a
-  # context; copy it if this module's resources are per-stage.
+  # the names must differ. The stage segment is the only place a stage reaches
+  # the id, and two contexts erase it there: an unset stage emits no segment at
+  # all, and stage = "np" covers the whole non-prod set. Under either, every
+  # non-prod deployment composes the same id. Add a validation rejecting such a
+  # context if this module's resources are per-stage.
 }
 
 variable "extra_tags" {

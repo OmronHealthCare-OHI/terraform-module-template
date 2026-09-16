@@ -60,8 +60,15 @@ providers in `versions.tf`, so dependabot can bump them.
    - [ ] `main.tf` — replace the seed body with the resources the module owns.
          Keep the `label` module, the `context` input and the `label_context`
          output.
-   - [ ] `variables.tf` — decide whether the module needs the stage-collision
-         validation that `terraform-aws-lambda-service` carries.
+   - [ ] `variables.tf` — decide whether the module needs a stage-collision
+         validation. Two contexts erase the stage from the id: an unset `stage`
+         emits no segment, and `stage = "np"` covers the whole non-prod set.
+   - [ ] **SOUP** — `1.0.0` wraps
+         [`cloudposse/label/null`](https://registry.terraform.io/modules/cloudposse/label/null/0.25.0)
+         `0.25.0`, so `terraform init` pulls one third-party module from the
+         Terraform Registry (`0.1.2` pulled none). Register it as a SOUP entry
+         for the repo you generate from this template. `.checkov-config.yml`
+         already sets `download-external-modules`, so it is scanned.
    - [ ] `outputs.tf` — one output per address a consumer needs, each described.
    - [ ] `tests/defaults.tftest.hcl` — tests for those resources.
    - [ ] `examples/complete/main.tf` — add a `provider` block once the module
@@ -139,8 +146,9 @@ terraform test
 pre-commit run --all-files
 ```
 
-`terraform init` and `terraform test` reach GitHub to fetch the label module, so
-both need network access.
+`terraform init` and `terraform test` reach GitHub to fetch the label module and
+the Terraform Registry for the `cloudposse/label/null` it wraps, so both need
+network access.
 
 ## The seed module
 
@@ -150,6 +158,12 @@ it takes a `context` from the caller's
 instance, composes `local.id` and `local.tags` from it, and re-exports
 `label_context` so consumers can chain a child label off its hierarchy. Replace
 the resources; keep the contract.
+
+`variable "context"` reproduces the label's own context object. Keep the two in
+step: Terraform drops object attributes the target type does not declare instead
+of erroring, so a field missing here is lost in silence — a green plan with the
+wrong names. `tests/defaults.tftest.hcl` asserts on `Namespace` and
+`Environment` for exactly that reason.
 
 <!-- BEGIN_TF_DOCS -->
 ### Requirements
@@ -166,7 +180,7 @@ No providers.
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_label"></a> [label](#module\_label) | github.com/OmronHealthCare-OHI/terraform-null-label | 0.1.2 |
+| <a name="module_label"></a> [label](#module\_label) | github.com/OmronHealthCare-OHI/terraform-null-label | 1.0.0 |
 
 ### Resources
 
@@ -176,7 +190,7 @@ No resources.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_context"></a> [context](#input\_context) | Label context from the caller's terraform-null-label instance. Supplies the <country><stage>-<region> prefix, the ohi:* tag hierarchy and any attributes. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    country              = optional(string, null)<br/>    stage                = optional(string, null)<br/>    aws_region           = optional(string, null)<br/>    deployment_region    = optional(string, null)<br/>    project              = optional(string, null)<br/>    application          = optional(string, null)<br/>    module               = optional(string, null)<br/>    stack_suffix         = optional(string, null)<br/>    stack_name_enabled   = optional(bool, true)<br/>    owner                = optional(string, null)<br/>    name                 = optional(string, null)<br/>    attributes           = optional(list(string), [])<br/>    non_prd              = optional(bool, false)<br/>    delimiter            = optional(string, "-")<br/>    prefix_enabled       = optional(bool, true)<br/>    tag_prefix           = optional(string, "ohi")<br/>    tag_delimiter        = optional(string, ":")<br/>    id_length_limit      = optional(number, null)<br/>    max_tag_key_length   = optional(number, null)<br/>    max_tag_value_length = optional(number, null)<br/>    tags                 = optional(map(string), {})<br/>  })</pre> | n/a | yes |
+| <a name="input_context"></a> [context](#input\_context) | Label context from the caller's terraform-null-label instance. Supplies the <namespace>-<region>-<stage> id segments, the ohi:* tag hierarchy and any attributes. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    namespace            = optional(string, null)<br/>    region               = optional(string, null)<br/>    stage                = optional(string, null)<br/>    aws_region           = optional(string, null)<br/>    application          = optional(string, null)<br/>    module               = optional(string, null)<br/>    stack_suffix         = optional(string, null)<br/>    stack_name_enabled   = optional(bool, true)<br/>    owner                = optional(string, null)<br/>    name                 = optional(string, null)<br/>    attributes           = optional(list(string), [])<br/>    delimiter            = optional(string, "-")<br/>    tag_prefix           = optional(string, "ohi")<br/>    tag_delimiter        = optional(string, ":")<br/>    id_length_limit      = optional(number, null)<br/>    max_tag_key_length   = optional(number, null)<br/>    max_tag_value_length = optional(number, null)<br/>    tags                 = optional(map(string), {})<br/>  })</pre> | n/a | yes |
 | <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Additional tags merged on top of the label's generated ohi:* and Name tags. Passed through the label module, so its AWS tag constraints apply. | `map(string)` | `{}` | no |
 | <a name="input_name"></a> [name](#input\_name) | Leaf name for this module's resources. Becomes the label's name segment. | `string` | n/a | yes |
 
@@ -185,6 +199,6 @@ No resources.
 | Name | Description |
 |------|-------------|
 | <a name="output_id"></a> [id](#output\_id) | The name the label composed for this module's resources |
-| <a name="output_label_context"></a> [label\_context](#output\_label\_context) | The context this module's label resolved to, for composing child labels that inherit its naming hierarchy. The leaf name is withheld: the label has a single name slot, so a child that inherited it would compose an id identical to this module's. Child labels must set their own name, and it replaces this one rather than nesting under it, so keep child names unique within the project/application hierarchy. |
+| <a name="output_label_context"></a> [label\_context](#output\_label\_context) | The context this module's label resolved to, for composing child labels that inherit its naming hierarchy. The leaf name is withheld: the label has a single name slot, so a child that inherited it would compose an id identical to this module's. Child labels must set their own name, and it replaces this one rather than nesting under it, so keep child names unique within the namespace/application hierarchy. |
 | <a name="output_tags"></a> [tags](#output\_tags) | The tags applied to every resource here: the label's ohi:* set and Name, merged with extra\_tags |
 <!-- END_TF_DOCS -->
