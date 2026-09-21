@@ -30,9 +30,9 @@ run "composes_the_label_id" {
     error_message = "the ohi:* tags should come from the label context"
   }
 
-  # namespace and region are the two fields 1.0.0 added. Terraform drops object
-  # attributes an input type does not declare instead of erroring, so asserting
-  # them here is what catches `variable "context"` drifting behind the label.
+  # Terraform drops context fields `variable "context"` does not declare instead
+  # of erroring, so read two of them back: this fails when the object type
+  # drifts behind the label, rather than composing a wrong id in silence.
   assert {
     condition     = output.tags["Namespace"] == "vlt" && output.tags["Environment"] == "us"
     error_message = "namespace and region must survive the context object; check variable \"context\" against terraform-null-label"
