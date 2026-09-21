@@ -63,12 +63,6 @@ providers in `versions.tf`, so dependabot can bump them.
    - [ ] `variables.tf` — decide whether the module needs a stage-collision
          validation. Two contexts erase the stage from the id: an unset `stage`
          emits no segment, and `stage = "np"` covers the whole non-prod set.
-   - [ ] **SOUP** — `1.0.0` wraps
-         [`cloudposse/label/null`](https://registry.terraform.io/modules/cloudposse/label/null/0.25.0)
-         `0.25.0`, so `terraform init` pulls one third-party module from the
-         Terraform Registry (`0.1.2` pulled none). Register it as a SOUP entry
-         for the repo you generate from this template. `.checkov-config.yml`
-         already sets `download-external-modules`, so it is scanned.
    - [ ] `outputs.tf` — one output per address a consumer needs, each described.
    - [ ] `tests/defaults.tftest.hcl` — tests for those resources.
    - [ ] `examples/complete/main.tf` — add a `provider` block once the module
@@ -77,9 +71,16 @@ providers in `versions.tf`, so dependabot can bump them.
          each with its reason.
    - [ ] `.tflint.hcl` — enable the commented opt-in rules if you want them.
    - [ ] This `README.md` — describe the module. Keep the `BEGIN_TF_DOCS` block.
-4. Create the repo labels the workflows expect (see **Labels**), then set
+4. Register the **SOUP** entry. The label module wraps
+   [`cloudposse/label/null`](https://registry.terraform.io/modules/cloudposse/label/null/0.25.0)
+   `0.25.0`, so `terraform init` pulls one third-party module from the Terraform
+   Registry. Nothing in the code marks this — it is a register entry, not a
+   `TODO(template)` — but every repo generated from this template inherits the
+   dependency. `.checkov-config.yml` already sets `download-external-modules`,
+   so it is scanned.
+5. Create the repo labels the workflows expect (see **Labels**), then set
    squash-only merging and delete-branch-on-merge.
-5. Protect `main`. Repository rulesets are not copied by "Use this template", so
+6. Protect `main`. Repository rulesets are not copied by "Use this template", so
    without this step CI is advisory and a `safe-change` label is enough to merge
    a red PR — the auto-approval satisfies the required review on its own. Require
    a pull request, and require these checks to pass:
@@ -191,7 +192,7 @@ No resources.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_context"></a> [context](#input\_context) | Label context from the caller's terraform-null-label instance. Supplies the <namespace>-<region>-<stage> id segments, the ohi:* tag hierarchy and any attributes. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    namespace            = optional(string, null)<br/>    region               = optional(string, null)<br/>    stage                = optional(string, null)<br/>    aws_region           = optional(string, null)<br/>    application          = optional(string, null)<br/>    module               = optional(string, null)<br/>    stack_suffix         = optional(string, null)<br/>    stack_name_enabled   = optional(bool, true)<br/>    owner                = optional(string, null)<br/>    name                 = optional(string, null)<br/>    attributes           = optional(list(string), [])<br/>    delimiter            = optional(string, "-")<br/>    tag_prefix           = optional(string, "ohi")<br/>    tag_delimiter        = optional(string, ":")<br/>    id_length_limit      = optional(number, null)<br/>    max_tag_key_length   = optional(number, null)<br/>    max_tag_value_length = optional(number, null)<br/>    tags                 = optional(map(string), {})<br/>  })</pre> | n/a | yes |
-| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Additional tags merged on top of the label's generated ohi:* and Name tags. Passed through the label module, so its AWS tag constraints apply. | `map(string)` | `{}` | no |
+| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Additional tags merged with the label's generated ohi:* and CloudPosse tags. On a key collision the GENERATED tags win, so Namespace/Environment/Stage/Name and the ohi:* keys cannot be overridden or cleared. Passed through the label module, so its AWS tag constraints apply — including the 50-tag cap, which counts the generated tags. | `map(string)` | `{}` | no |
 | <a name="input_name"></a> [name](#input\_name) | Leaf name for this module's resources. Becomes the label's name segment. | `string` | n/a | yes |
 
 ### Outputs

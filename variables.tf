@@ -53,6 +53,6 @@ variable "context" {
 
 variable "extra_tags" {
   type        = map(string)
-  description = "Additional tags merged on top of the label's generated ohi:* and Name tags. Passed through the label module, so its AWS tag constraints apply."
+  description = "Additional tags merged with the label's generated ohi:* and CloudPosse tags. On a key collision the GENERATED tags win, so Namespace/Environment/Stage/Name and the ohi:* keys cannot be overridden or cleared. Passed through the label module, so its AWS tag constraints apply — including the 50-tag cap, which counts the generated tags."
   default     = {}
 }

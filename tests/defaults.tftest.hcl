@@ -63,6 +63,6 @@ run "merges_extra_tags" {
 
   assert {
     condition     = output.tags["managed-by"] == "terraform"
-    error_message = "extra_tags should be merged on top of the label's own tags"
+    error_message = "extra_tags should be merged into the label's own tags (on a key collision the label wins)"
   }
 }
