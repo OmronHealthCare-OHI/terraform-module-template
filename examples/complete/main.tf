@@ -5,18 +5,16 @@ terraform {
 # The caller owns the label: it states where it deploys and where it sits in the
 # ohi:* hierarchy, and hands the resolved context to every module it calls.
 module "label" {
-  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.2"
+  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=1.0.0"
 
-  country    = "us"
-  aws_region = "us-west-2"
-  non_prd    = true # -> prefix usnp-usw2
+  namespace  = "vlt"
+  region     = "us"
+  stage      = "dev"
+  aws_region = "us-west-2" # tag only; not part of the id
 
-  project     = "vlt"
   application = "platform"
-  module      = "example"
+  module      = "example" # -> ohi:module = platform-example; not in the id
   owner       = "cloud-foundations"
-
-  attributes = ["test"]
 
   tags = {
     managed-by = "terraform"
@@ -40,16 +38,16 @@ module "example" {
 }
 
 # Chaining: a child label inherits the module's hierarchy and sets its own leaf
-# name, so sibling resources stay under one project/application.
+# name, so sibling resources stay under one namespace/application.
 module "child_label" {
-  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.2"
+  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=1.0.0"
 
   context = module.example.label_context
   name    = "child"
 }
 
 output "id" {
-  description = "Name the module composed, e.g. usnp-usw2-vlt-platform-example-test"
+  description = "Name the module composed, e.g. vlt-us-dev-platform-example"
   value       = module.example.id
 }
 

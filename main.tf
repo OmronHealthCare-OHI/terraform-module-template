@@ -19,7 +19,7 @@
 # worked example.
 
 module "label" {
-  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=0.1.2"
+  source = "github.com/OmronHealthCare-OHI/terraform-null-label?ref=1.0.0"
 
   context = var.context
   name    = var.name
@@ -27,8 +27,9 @@ module "label" {
 }
 
 locals {
-  # {prefix}-{project}-{application}-{name}-{attributes}, e.g.
-  # usnp-usw2-vlt-platform-example-test
+  # {namespace}-{region}-{stage}-{application}-{name}-{attributes}, e.g.
+  # vlt-us-dev-platform-example. The AWS region is not in the id; it is the
+  # ohi:aws-region tag.
   id = module.label.id
 
   # The label's generated ohi:* set and Name, merged with extra_tags.
