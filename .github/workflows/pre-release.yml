@@ -22,7 +22,5 @@ jobs:
       - name: Draft Release
         uses: release-drafter/release-drafter@v7
         with:
-          disable-autolabeler: true
           publish: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
