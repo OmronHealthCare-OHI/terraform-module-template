@@ -9,24 +9,13 @@ on:
 concurrency:
   group: ci-${{ github.head_ref }}-pr
 
-# Both jobs state what they need; this only stops the workflow from inheriting
+# The job states what it needs; this only stops the workflow from inheriting
 # the repository default. A called workflow cannot hold more than the caller
 # grants, so the validate job below repeats what validate.yml's jobs ask for.
+# Labelling runs in label-pull-request.yml, which also runs on a title edit.
 permissions: {}
 
 jobs:
-  administration:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: PR Labeling
-        uses: srvaroa/labeler@v1.14.0
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   validate:
     uses: ./.github/workflows/validate.yml
     permissions:
