@@ -16,11 +16,6 @@ on:
 # inheriting the repository default.
 permissions: {}
 
-# Pinned, not read from .terraform-docs.yml: that holds a `>=` floor, and
-# --output-check needs one exact version. Bump alongside the constraint.
-env:
-  TERRAFORM_DOCS_VERSION: 0.20.0
-
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -105,18 +100,38 @@ jobs:
           config_file: ${{inputs.terraform_directory}}/.checkov-config.yml
 
       # The BEGIN_TF_DOCS block is the module's interface, so CI checks it
-      # rather than trusting the hook.
+      # rather than trusting the hook. It checks what the block says, not how
+      # it is laid out: terraform-docs releases often, and its versions differ
+      # in layout (0.25 writes `| ---- |` separator rows where 0.20 wrote
+      # `|------|`). So CI runs the latest release, and any version at or above
+      # .terraform-docs.yml's floor can write the block locally. A release that
+      # changes the content itself (a new column, say) still fails here, once,
+      # until the block is regenerated.
       - name: Setup terraform-docs
         uses: jaxxstorm/action-install-gh-release@v3.0.0
         with:
           repo: terraform-docs/terraform-docs
-          tag: v${{ env.TERRAFORM_DOCS_VERSION }}
-          cache: enable # the action compares this to "enable", not to a bool
+          tag: latest
 
       - name: terraform-docs is up to date
         id: tf-docs
         working-directory: ${{inputs.terraform_directory}}
-        run: terraform-docs -c .terraform-docs.yml . --output-check
+        run: |
+          # The block between the markers, without the layout: table separator
+          # rows dropped, runs of spaces (cell padding) squeezed to one.
+          normalize() {
+            sed -n '/<!-- BEGIN_TF_DOCS -->/,/<!-- END_TF_DOCS -->/p' "$1" \
+              | grep -v -E '^\|[[:space:]:|-]+\|$' \
+              | tr -s ' '
+          }
+          terraform-docs --version
+          committed="$(mktemp)"
+          cp README.md "$committed"
+          terraform-docs -c .terraform-docs.yml .
+          if ! diff -u <(normalize "$committed") <(normalize README.md); then
+            echo "::error file=README.md::The terraform-docs block is out of date: run pre-commit (or terraform-docs -c .terraform-docs.yml .) and commit README.md."
+            exit 1
+          fi
 
       # fmt and test use continue-on-error so results still publish; fail here.
       - name: Fail on format or test errors
