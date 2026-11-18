@@ -117,12 +117,13 @@ jobs:
         id: tf-docs
         working-directory: ${{inputs.terraform_directory}}
         run: |
-          # The block between the markers, without the layout: table separator
-          # rows dropped, runs of spaces (cell padding) squeezed to one.
+          # The block between the markers, without its table separator rows,
+          # the only part that differs between 0.20 and 0.25. Every other byte is
+          # compared as is: squeezing spaces would also hide a change inside a
+          # default or a description ("a  b" against "a b").
           normalize() {
             sed -n '/<!-- BEGIN_TF_DOCS -->/,/<!-- END_TF_DOCS -->/p' "$1" \
-              | grep -v -E '^\|[[:space:]:|-]+\|$' \
-              | tr -s ' '
+              | grep -v -E '^\|[[:space:]:|-]+\|$'
           }
           terraform-docs --version
           committed="$(mktemp)"
