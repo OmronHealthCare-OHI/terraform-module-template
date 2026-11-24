@@ -1,0 +1,40 @@
+name: Pull Request labels
+# The version and type labels the release notes group by (.github/labeler.yml).
+# A workflow of its own, because the labels follow the PR title too: it must
+# run again when the title is edited, and pull-request.yml need not.
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+# A newer event on the same PR supersedes a labelling run.
+concurrency:
+  group: pr-labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Every job states what it needs; this only stops the workflow from
+# inheriting the repository default.
+permissions: {}
+
+jobs:
+  administration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # the labeler reads .github/labeler.yml
+      pull-requests: write # and labels the PR
+    steps:
+      # fail_on_error (default false) turns this check red when labeler.yml
+      # cannot be read or parsed. A failed label update does not: the labeler
+      # logs it and exits 0, so on a fork PR (read-only token) this check stays
+      # green. Label such a PR by hand; the read-only labeler cannot strip it.
+      # A conventional title's version does not depend on the label:
+      # release-drafter.yml reads it from the title too.
+      - name: PR Labeling
+        uses: srvaroa/labeler@bf262763a8a8e191f5847873aecc0f29df84f957 # v1.14.0
+        with:
+          fail_on_error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

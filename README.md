@@ -30,10 +30,10 @@ module "thing" {
 │   ├── basic/               # minimum call
 │   └── complete/            # every input, plus child-label chaining
 ├── .github/
-│   ├── workflows/           # validate, pull-request, safe-change, pre-release,
-│   │                        # release, promote-release
-│   ├── labeler.yml          # branch / title / path / size → PR labels
-│   ├── release-drafter.yml  # draft notes + version resolver
+│   ├── workflows/           # validate, pull-request, label-pull-request,
+│   │                        # safe-change, pre-release, release, promote-release
+│   ├── labeler.yml          # the shared base's rules: title / branch / path / size → PR labels
+│   ├── release-drafter.yml  # extends the shared base (OmronHealthCare-OHI/.github)
 │   └── dependabot.yml       # github-actions monthly, terraform weekly
 ├── .pre-commit-config.yaml  # fmt, validate, docs, tflint, checkov, test
 ├── .tflint.hcl              # recommended preset + pinned-source style
@@ -91,7 +91,9 @@ providers in `versions.tf`, so dependabot can bump them.
 
 Running in CI, on every PR:
 
-- **`pull-request.yml`** — runs the labeler, then calls `validate.yml`.
+- **`pull-request.yml`** — calls `validate.yml`.
+- **`label-pull-request.yml`** — runs the labeler, again whenever the PR title
+  is edited.
 - **`validate.yml`** — `terraform fmt -check -recursive`, `init`, `validate`,
   `terraform test` with JUnit results published as a PR comment, tflint, Checkov
   and a terraform-docs freshness check. A second job validates every directory
@@ -119,8 +121,13 @@ Everything the hooks run is also checked in CI. The hooks fix what they can
 
 ## Labels
 
-`srvaroa/labeler` runs with `continue-on-error: true`, so labels that do not
-exist fail silently and the version resolver falls back to `patch`.
+The release notes and version resolution come from the shared base,
+[OmronHealthCare-OHI/.github](https://github.com/OmronHealthCare-OHI/.github#release-notes),
+and `labeler.yml` is a copy of its rules: change them there first.
+`srvaroa/labeler` fails the check only when it cannot read its configuration. A
+label it fails to set (for example one that does not exist) is logged and the
+check stays green. The version does not depend on it alone: the base also reads
+a breaking change (`feat!:`) and a `feat:` from the PR title.
 
 GitHub creates `bug` and `documentation` with a new repo. Create the rest:
 
@@ -132,7 +139,7 @@ GitHub creates `bug` and `documentation` with a new repo. Create the rest:
 
 `AI: instructions` and `AI: agents` are for `.github/instructions/` and
 `.github/agents/`, which this template does not ship. The rules are kept so a
-repo that adds them later labels and excludes them from release notes correctly.
+repo that adds them later labels them.
 
 ## Local development
 
